@@ -5,6 +5,7 @@ import Compass from '@/components/navigation/Compass';
 import ConnectivityStatus from '@/components/navigation/ConnectivityStatus';
 import LocationStatus from '@/components/navigation/LocationStatus';
 import PathVisualizer from '@/components/navigation/PathVisualizer';
+import PoiManager from '@/components/navigation/PoiManager';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -61,6 +62,8 @@ export default function HomeScreen() {
       />
 
       <PathVisualizer path={path} currentLocation={currentLocation} />
+
+      <PoiManager currentLocation={currentLocation} />
 
     </ParallaxScrollView>
   );
