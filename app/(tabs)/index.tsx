@@ -1,98 +1,107 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { HelloWave } from '@/components/hello-wave';
+import Compass from '@/components/navigation/Compass';
+import ConnectivityStatus from '@/components/navigation/ConnectivityStatus';
+import LocationStatus from '@/components/navigation/LocationStatus';
+import PathVisualizer from '@/components/navigation/PathVisualizer';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { useLocationTracking } from '@/hooks/useLocationTracking';
 
 export default function HomeScreen() {
+  const {
+    isTracking,
+    path,
+    currentLocation,
+    errorMsg,
+    toggleTracking,
+    clearPath
+  } = useLocationTracking();
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
       headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
+        <View style={styles.headerIconContainer}>
+          <MaterialCommunityIcons name="compass" size={150} color="rgba(255,255,255,0.4)" />
+        </View>
       }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
+      <ThemedView style={styles.titleContainer}>
+        <ThemedText type="title">Cari Arah</ThemedText>
+        <MaterialCommunityIcons name="map-marker-radius" size={32} color="#0a7ea4" />
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
+
+      <ConnectivityStatus />
+
+      <Compass />
+
+      {/* Kontrol Tracking */}
+      <ThemedView style={styles.controlsContainer}>
+        <ResultButton
+          onPress={toggleTracking}
+          icon={isTracking ? "stop" : "play"}
+          label={isTracking ? "Stop Rec" : "Start Rec"}
+          color={isTracking ? "#FF3B30" : "#0a7ea4"}
+        />
+        <ResultButton
+          onPress={clearPath}
+          icon="delete-outline"
+          label="Reset"
+          color="#687076"
+        />
       </ThemedView>
+
+      <LocationStatus
+        location={currentLocation}
+        errorMsg={errorMsg}
+        isSearching={!currentLocation}
+      />
+
+      <PathVisualizer path={path} currentLocation={currentLocation} />
+
     </ParallaxScrollView>
   );
 }
+
+const ResultButton = ({ icon, label, onPress, color }: { icon: any, label: string, onPress: () => void, color: string }) => (
+  <View style={{ alignItems: 'center', gap: 4 }}>
+    <MaterialCommunityIcons.Button
+      name={icon}
+      backgroundColor={color}
+      onPress={onPress}
+      iconStyle={{ marginRight: 0 }}
+      borderRadius={20}
+      size={24}
+    >
+    </MaterialCommunityIcons.Button>
+    <Text style={{ fontSize: 12, color: '#687076' }}>{label}</Text>
+  </View>
+);
 
 const styles = StyleSheet.create({
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    justifyContent: 'center',
+    marginBottom: 10,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  headerIconContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
+  controlsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    marginTop: 20,
+    marginBottom: 10,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    borderRadius: 12
+  }
 });
