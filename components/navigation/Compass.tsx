@@ -10,15 +10,30 @@ import { ThemedView } from '@/components/themed-view';
 export default function Compass() {
     const [subscription, setSubscription] = useState<any>(null);
     const [magnetometer, setMagnetometer] = useState(0);
+    const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
 
     const rotation = useSharedValue(0);
 
     useEffect(() => {
-        _toggle();
+        _checkAvailability();
         return () => {
             _unsubscribe();
         };
     }, []);
+
+    const _checkAvailability = async () => {
+        try {
+            const available = await Magnetometer.isAvailableAsync();
+            setIsAvailable(available);
+            if (available) {
+                _subscribe();
+            }
+        } catch (error) {
+            console.log("Magnetometer check failed:", error);
+            setIsAvailable(false);
+        }
+    };
+
 
     const _toggle = () => {
         if (subscription) {
@@ -68,6 +83,15 @@ export default function Compass() {
             transform: [{ rotate: `${-rotation.value}deg` }],
         };
     });
+
+    if (isAvailable === false) {
+        return (
+            <ThemedView style={styles.container}>
+                <ThemedText style={styles.heading}>Kompas tidak tersedia</ThemedText>
+                <ThemedText>Perangkat ini tidak memiliki sensor magnetometer.</ThemedText>
+            </ThemedView>
+        );
+    }
 
     return (
         <ThemedView style={styles.container}>
