@@ -1,98 +1,124 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { Dimensions, StyleSheet, View } from 'react-native';
-import Svg, { Circle, Line, Polyline } from 'react-native-svg';
+import Svg, { Circle, Defs, Line, Polyline, Stop, LinearGradient as SvgLinearGradient } from 'react-native-svg';
 
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { Colors } from '@/constants/theme';
 
 interface PathVisualizerProps {
     path: Location.LocationObjectCoords[];
     currentLocation: Location.LocationObject | null;
-    heading?: number; // Compass heading to rotate map (optional)
+    heading?: number;
 }
 
 const { width } = Dimensions.get('window');
-const SIZE = width - 40;
+const SIZE = width - 32; // Full width minus padding
 const CENTER = SIZE / 2;
-const SCALE = 200000; // Scale factor, adjust zoom
+const SCALE = 200000;
 
-export default function PathVisualizer({ path, currentLocation, heading = 0 }: PathVisualizerProps) {
-    if (!currentLocation || path.length === 0) {
+export default function PathVisualizer({ path, currentLocation }: PathVisualizerProps) {
+    if (!currentLocation) {
         return (
-            <ThemedView style={styles.container}>
-                <ThemedText style={{ textAlign: 'center', color: '#687076' }}>Belum ada data jejak, atau lokasi belum ditemukan.</ThemedText>
-            </ThemedView>
+            <View style={styles.container}>
+                <ThemedText style={{ color: Colors.tactical.textDim }}>Waiting for GPS...</ThemedText>
+            </View>
         );
     }
 
-    // Convert lat/long to x/y relative to center
     const points = path.map(p => {
-        const dx = (p.longitude - currentLocation.coords.longitude) * SCALE; // deg * scale
-        const dy = (currentLocation.coords.latitude - p.latitude) * SCALE; // inverted Y for screen coords
+        const dx = (p.longitude - currentLocation.coords.longitude) * SCALE;
+        const dy = (currentLocation.coords.latitude - p.latitude) * SCALE;
         return `${CENTER + dx},${CENTER + dy}`;
     }).join(' ');
 
     return (
-        <ThemedView style={styles.container}>
-            <ThemedText type="subtitle" style={styles.title}>Visualisasi Jejak (Radar)</ThemedText>
-            <View style={styles.svgContainer}>
+        <View style={styles.container}>
+            <View style={styles.header}>
+                <ThemedText type="subtitle" style={{ color: Colors.tactical.primary }}>RADAR VIEW</ThemedText>
+                <ThemedText style={{ color: Colors.tactical.textDim, fontSize: 10 }}>SCALE 1:{SCALE}</ThemedText>
+            </View>
+
+            <LinearGradient
+                colors={['#1F2937', '#111827']}
+                style={styles.radarContainer}
+            >
                 <Svg height={SIZE} width={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
-                    {/* Grid Lines */}
-                    <Line x1={CENTER} y1="0" x2={CENTER} y2={SIZE} stroke="#333" strokeWidth="1" strokeDasharray="5,5" />
-                    <Line x1="0" y1={CENTER} x2={SIZE} y2={CENTER} stroke="#333" strokeWidth="1" strokeDasharray="5,5" />
+                    <Defs>
+                        <SvgLinearGradient id="pathGradient" x1="0" y1="0" x2="0" y2="1">
+                            <Stop offset="0" stopColor={Colors.tactical.primary} stopOpacity="0.8" />
+                            <Stop offset="1" stopColor={Colors.tactical.secondary} stopOpacity="0.8" />
+                        </SvgLinearGradient>
+                    </Defs>
+
+                    {/* Radar Grid - Concentric Circles */}
+                    <Circle cx={CENTER} cy={CENTER} r={CENTER} fill="#111827" />
+                    <Circle cx={CENTER} cy={CENTER} r={CENTER * 0.25} stroke={Colors.tactical.border} strokeWidth="1" strokeDasharray="5,5" fill="none" opacity="0.3" />
+                    <Circle cx={CENTER} cy={CENTER} r={CENTER * 0.5} stroke={Colors.tactical.border} strokeWidth="1" strokeDasharray="5,5" fill="none" opacity="0.3" />
+                    <Circle cx={CENTER} cy={CENTER} r={CENTER * 0.75} stroke={Colors.tactical.border} strokeWidth="1" strokeDasharray="5,5" fill="none" opacity="0.3" />
+                    <Circle cx={CENTER} cy={CENTER} r={CENTER - 1} stroke={Colors.tactical.border} strokeWidth="2" fill="none" />
+
+                    {/* Crosshairs */}
+                    <Line x1={CENTER} y1="0" x2={CENTER} y2={SIZE} stroke={Colors.tactical.primary} strokeWidth="0.5" opacity="0.4" />
+                    <Line x1="0" y1={CENTER} x2={SIZE} y2={CENTER} stroke={Colors.tactical.primary} strokeWidth="0.5" opacity="0.4" />
 
                     {/* Path */}
-                    <Polyline
-                        points={points}
-                        fill="none"
-                        stroke="#0a7ea4"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    />
+                    {path.length > 0 && (
+                        <Polyline
+                            points={points}
+                            fill="none"
+                            stroke={Colors.tactical.primary}
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            opacity="0.9"
+                        />
+                    )}
 
                     {/* Start Point */}
                     {path.length > 0 && (
                         <Circle
                             cx={CENTER + (path[0].longitude - currentLocation.coords.longitude) * SCALE}
                             cy={CENTER + (currentLocation.coords.latitude - path[0].latitude) * SCALE}
-                            r="4"
-                            fill="#34C759"
+                            r="3"
+                            fill={Colors.tactical.secondary}
+                            opacity="0.8"
                         />
                     )}
 
-                    {/* Current User Position (Center) */}
-                    <Circle cx={CENTER} cy={CENTER} r="6" fill="#FF3B30" stroke="#FFF" strokeWidth="2" />
+                    {/* Current Position Blip */}
+                    <Circle cx={CENTER} cy={CENTER} r="4" fill={Colors.tactical.alert} />
+                    <Circle cx={CENTER} cy={CENTER} r="8" stroke={Colors.tactical.alert} strokeWidth="1" opacity="0.5" />
                 </Svg>
-                <ThemedText style={styles.scaleText}>Scale: 1:{SCALE}</ThemedText>
-            </View>
-        </ThemedView>
+            </LinearGradient>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
-        padding: 10,
-        marginTop: 10,
+        marginTop: 20,
         alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.02)',
-        borderRadius: 8,
     },
-    title: {
-        marginBottom: 10,
+    header: {
+        width: '100%',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+        paddingHorizontal: 4,
     },
-    svgContainer: {
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 8,
-        backgroundColor: '#fff', // Or dark based on theme
+    radarContainer: {
+        width: SIZE,
+        height: SIZE,
+        borderRadius: SIZE / 2,
         overflow: 'hidden',
-    },
-    scaleText: {
-        position: 'absolute',
-        bottom: 5,
-        right: 5,
-        fontSize: 10,
-        color: '#999',
+        borderWidth: 1,
+        borderColor: Colors.tactical.border,
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.5,
+        shadowRadius: 4,
     },
 });

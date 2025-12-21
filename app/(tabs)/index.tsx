@@ -1,14 +1,15 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Compass from '@/components/navigation/Compass';
 import ConnectivityStatus from '@/components/navigation/ConnectivityStatus';
 import LocationStatus from '@/components/navigation/LocationStatus';
 import PathVisualizer from '@/components/navigation/PathVisualizer';
 import PoiManager from '@/components/navigation/PoiManager';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { Colors } from '@/constants/theme';
 import { useLocationTracking } from '@/hooks/useLocationTracking';
 
 export default function HomeScreen() {
@@ -22,89 +23,132 @@ export default function HomeScreen() {
   } = useLocationTracking();
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <View style={styles.headerIconContainer}>
-          <MaterialCommunityIcons name="compass" size={150} color="rgba(255,255,255,0.4)" />
-        </View>
-      }>
+    <LinearGradient
+      colors={[Colors.tactical.background, '#000']}
+      style={styles.container}
+    >
+      <SafeAreaView style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
 
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Cari Arah</ThemedText>
-        <MaterialCommunityIcons name="map-marker-radius" size={32} color="#0a7ea4" />
-      </ThemedView>
+          {/* Header Status Bar */}
+          <View style={styles.headerBar}>
+            <View style={styles.appTitle}>
+              <MaterialCommunityIcons name="radar" size={24} color={Colors.tactical.primary} />
+              <ThemedText type="subtitle" style={{ color: Colors.tactical.text }}>CARI ARAH</ThemedText>
+            </View>
+            <ConnectivityStatus />
+          </View>
 
-      <ConnectivityStatus />
+          {/* Main Visualization Area */}
+          <Compass />
 
-      <Compass />
+          <PathVisualizer path={path} currentLocation={currentLocation} />
 
-      {/* Kontrol Tracking */}
-      <ThemedView style={styles.controlsContainer}>
-        <ResultButton
-          onPress={toggleTracking}
-          icon={isTracking ? "stop" : "play"}
-          label={isTracking ? "Stop Rec" : "Start Rec"}
-          color={isTracking ? "#FF3B30" : "#0a7ea4"}
-        />
-        <ResultButton
-          onPress={clearPath}
-          icon="delete-outline"
-          label="Reset"
-          color="#687076"
-        />
-      </ThemedView>
+          {/* Data Grid */}
+          <LocationStatus
+            location={currentLocation}
+            errorMsg={errorMsg}
+            isSearching={!currentLocation}
+          />
 
-      <LocationStatus
-        location={currentLocation}
-        errorMsg={errorMsg}
-        isSearching={!currentLocation}
-      />
+          {/* Controls */}
+          <View style={styles.controlsContainer}>
+            <ActionButton
+              onPress={toggleTracking}
+              icon={isTracking ? "stop" : "record-circle-outline"}
+              label={isTracking ? "STOP TRACKING" : "START TRACKING"}
+              isActive={isTracking}
+              activeColor={Colors.tactical.alert}
+              defaultColor={Colors.tactical.primary}
+            />
+            <ActionButton
+              onPress={clearPath}
+              icon="delete-sweep-outline"
+              label="CLEAR DATA"
+              isActive={false} // Always default state
+              activeColor={Colors.tactical.alert}
+              defaultColor={Colors.tactical.textDim}
+            />
+          </View>
 
-      <PathVisualizer path={path} currentLocation={currentLocation} />
+          <PoiManager currentLocation={currentLocation} />
 
-      <PoiManager currentLocation={currentLocation} />
-
-    </ParallaxScrollView>
+        </ScrollView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
-const ResultButton = ({ icon, label, onPress, color }: { icon: any, label: string, onPress: () => void, color: string }) => (
-  <View style={{ alignItems: 'center', gap: 4 }}>
-    <MaterialCommunityIcons.Button
-      name={icon}
-      backgroundColor={color}
-      onPress={onPress}
-      iconStyle={{ marginRight: 0 }}
-      borderRadius={20}
-      size={24}
+const ActionButton = ({ icon, label, onPress, isActive, activeColor, defaultColor }: any) => (
+  <TouchableOpacity
+    onPress={onPress}
+    style={[
+      styles.button,
+      { borderColor: isActive ? activeColor : Colors.tactical.border }
+    ]}
+  >
+    <LinearGradient
+      colors={isActive ? ['rgba(239, 68, 68, 0.2)', 'rgba(239, 68, 68, 0.1)'] : ['rgba(31, 41, 55, 0.5)', 'rgba(17, 24, 39, 0.5)']}
+      style={styles.buttonGradient}
     >
-    </MaterialCommunityIcons.Button>
-    <Text style={{ fontSize: 12, color: '#687076' }}>{label}</Text>
-  </View>
+      <MaterialCommunityIcons
+        name={icon}
+        size={24}
+        color={isActive ? activeColor : defaultColor}
+      />
+      <ThemedText style={[
+        styles.buttonLabel,
+        { color: isActive ? activeColor : defaultColor }
+      ]}>
+        {label}
+      </ThemedText>
+    </LinearGradient>
+  </TouchableOpacity>
 );
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  headerBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.tactical.border,
+    paddingBottom: 10,
+  },
+  appTitle: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  headerIconContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 20,
   },
   controlsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-evenly',
-    marginTop: 20,
-    marginBottom: 10,
-    paddingVertical: 10,
-    backgroundColor: 'rgba(0,0,0,0.03)',
-    borderRadius: 12
-  }
+    gap: 12,
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  button: {
+    flex: 1,
+    borderRadius: 8,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  buttonGradient: {
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  buttonLabel: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
 });
