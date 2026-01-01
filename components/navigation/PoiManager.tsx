@@ -16,9 +16,11 @@ interface POI {
 
 interface PoiManagerProps {
     currentLocation: Location.LocationObject | null;
+    onSetTarget: (coords: Location.LocationObjectCoords) => void;
+    activeTargetCoords: Location.LocationObjectCoords | null;
 }
 
-export default function PoiManager({ currentLocation }: PoiManagerProps) {
+export default function PoiManager({ currentLocation, onSetTarget, activeTargetCoords }: PoiManagerProps) {
     const [pois, setPois] = useState<POI[]>([]);
     const [modalVisible, setModalVisible] = useState(false);
     const [newPoiName, setNewPoiName] = useState('');
@@ -67,8 +69,7 @@ export default function PoiManager({ currentLocation }: PoiManagerProps) {
 
     const calculateDistance = (target: Location.LocationObjectCoords) => {
         if (!currentLocation) return '...';
-        // Haversine formula simple approx or use libraries.
-        // Converting simple Euclidean for small scale or better math.
+        // Haversine formula simple approx
         const R = 6371e3; // metres
         const φ1 = currentLocation.coords.latitude * Math.PI / 180;
         const φ2 = target.latitude * Math.PI / 180;
@@ -116,18 +117,35 @@ export default function PoiManager({ currentLocation }: PoiManagerProps) {
                 renderItem={({ item }) => {
                     const bearing = calculateBearing(item.coords);
                     const distance = calculateDistance(item.coords);
+                    const isActive = activeTargetCoords &&
+                        activeTargetCoords.latitude === item.coords.latitude &&
+                        activeTargetCoords.longitude === item.coords.longitude;
 
                     return (
-                        <ThemedView style={styles.card}>
+                        <ThemedView style={[styles.card, isActive && styles.activeCard]}>
                             <View>
-                                <ThemedText type="defaultSemiBold">{item.name}</ThemedText>
+                                <ThemedText type="defaultSemiBold" style={isActive ? { color: '#10B981' } : {}}>
+                                    {item.name} {isActive && "(TARGET)"}
+                                </ThemedText>
                                 <ThemedText style={styles.details}>
                                     Jarak: {distance} • Arah: {Math.round(bearing)}°
                                 </ThemedText>
                             </View>
-                            <TouchableOpacity onPress={() => deletePoi(item.id)}>
-                                <MaterialCommunityIcons name="trash-can-outline" size={20} color="#FF3B30" />
-                            </TouchableOpacity>
+                            <View style={styles.actions}>
+                                <TouchableOpacity
+                                    onPress={() => onSetTarget(item.coords)}
+                                    style={[styles.actionBtn, { marginRight: 8 }]}
+                                >
+                                    <MaterialCommunityIcons
+                                        name="crosshairs-gps"
+                                        size={20}
+                                        color={isActive ? "#10B981" : "#687076"}
+                                    />
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => deletePoi(item.id)} style={styles.actionBtn}>
+                                    <MaterialCommunityIcons name="trash-can-outline" size={20} color="#FF3B30" />
+                                </TouchableOpacity>
+                            </View>
                         </ThemedView>
                     );
                 }}
@@ -197,9 +215,21 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         backgroundColor: 'rgba(255,255,255,0.05)',
     },
+    activeCard: {
+        borderColor: '#10B981',
+        borderWidth: 1,
+        backgroundColor: 'rgba(16, 185, 129, 0.1)'
+    },
     details: {
         fontSize: 12,
         color: '#687076',
+    },
+    actions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    actionBtn: {
+        padding: 4,
     },
     empty: {
         color: '#687076',
@@ -234,7 +264,7 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         padding: 10,
         marginBottom: 20,
-        color: '#000', // adjust for dark mode
+        color: '#fff',
     },
     modalButtons: {
         flexDirection: 'row',

@@ -14,7 +14,11 @@ const { width } = Dimensions.get('window');
 const COMPASS_SIZE = width * 0.8;
 const CENTER = COMPASS_SIZE / 2;
 
-export default function Compass() {
+interface CompassProps {
+    targetBearing?: number | null;
+}
+
+export default function Compass({ targetBearing }: CompassProps) {
     const [magnetometer, setMagnetometer] = useState(0);
     const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
 
@@ -66,8 +70,6 @@ export default function Compass() {
     };
 
     useEffect(() => {
-        // Handle wrap-around for smooth rotation (e.g. 359 -> 0) is tricky with simple spring
-        // Detailed implementation omitted for brevity, using simple spring for now
         rotation.value = withSpring(magnetometer, { damping: 15, stiffness: 100 });
     }, [magnetometer]);
 
@@ -94,10 +96,15 @@ export default function Compass() {
                 <ThemedText style={styles.headingLabel}>
                     {getCardinalDirection(magnetometer)}
                 </ThemedText>
+                {targetBearing !== null && targetBearing !== undefined && (
+                    <ThemedText style={styles.targetLabel}>
+                        TARGET: {Math.round(targetBearing)}°
+                    </ThemedText>
+                )}
             </View>
 
             <View style={styles.compassWrapper}>
-                {/* Fixed Indicator Triangle */}
+                {/* Fixed Indicator Triangle (Heading) */}
                 <View style={styles.indicatorContainer}>
                     <MaterialCommunityIcons name="menu-down" size={40} color={Colors.tactical.alert} />
                 </View>
@@ -109,6 +116,17 @@ export default function Compass() {
                         style={styles.dialBackground}
                     >
                         <DialTicks />
+                        {/* Target Indicator on the Dial */}
+                        {targetBearing !== null && targetBearing !== undefined && (
+                            <View
+                                style={[
+                                    styles.targetIndicator,
+                                    { transform: [{ rotate: `${targetBearing}deg` }] }
+                                ]}
+                            >
+                                <MaterialCommunityIcons name="triangle" size={20} color={Colors.tactical.secondary} />
+                            </View>
+                        )}
                     </LinearGradient>
                 </Animated.View>
             </View>
@@ -216,6 +234,12 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         letterSpacing: 2,
     },
+    targetLabel: {
+        marginTop: 4,
+        fontSize: 14,
+        color: Colors.tactical.secondary,
+        fontWeight: 'bold',
+    },
     compassWrapper: {
         width: COMPASS_SIZE,
         height: COMPASS_SIZE,
@@ -248,6 +272,16 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    targetIndicator: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        paddingTop: 35, // Position just below the ticks
     },
     errorText: {
         color: Colors.tactical.alert,

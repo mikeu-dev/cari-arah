@@ -1,5 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Location from 'expo-location';
+import { useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -22,6 +24,26 @@ export default function HomeScreen() {
     clearPath
   } = useLocationTracking();
 
+  const [activeTarget, setActiveTarget] = useState<Location.LocationObjectCoords | null>(null);
+
+  const calculateBearing = (start: Location.LocationObjectCoords, dest: Location.LocationObjectCoords) => {
+    const startLat = start.latitude * Math.PI / 180;
+    const startLng = start.longitude * Math.PI / 180;
+    const destLat = dest.latitude * Math.PI / 180;
+    const destLng = dest.longitude * Math.PI / 180;
+
+    const y = Math.sin(destLng - startLng) * Math.cos(destLat);
+    const x = Math.cos(startLat) * Math.sin(destLat) -
+      Math.sin(startLat) * Math.cos(destLat) * Math.cos(destLng - startLng);
+    let brng = Math.atan2(y, x);
+    brng = brng * 180 / Math.PI;
+    return (brng + 360) % 360;
+  };
+
+  const targetBearing = (currentLocation && activeTarget)
+    ? calculateBearing(currentLocation.coords, activeTarget)
+    : null;
+
   return (
     <LinearGradient
       colors={[Colors.tactical.background, '#000']}
@@ -40,7 +62,7 @@ export default function HomeScreen() {
           </View>
 
           {/* Main Visualization Area */}
-          <Compass />
+          <Compass targetBearing={targetBearing} />
 
           <PathVisualizer path={path} currentLocation={currentLocation} />
 
@@ -71,7 +93,11 @@ export default function HomeScreen() {
             />
           </View>
 
-          <PoiManager currentLocation={currentLocation} />
+          <PoiManager
+            currentLocation={currentLocation}
+            onSetTarget={(coords) => setActiveTarget(coords)}
+            activeTargetCoords={activeTarget}
+          />
 
         </ScrollView>
       </SafeAreaView>
